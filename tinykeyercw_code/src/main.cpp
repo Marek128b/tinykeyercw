@@ -6,12 +6,17 @@ int led_pin = PIN_PA2;
 int buzzer_pin = PIN_PA1;
 
 int interval_time = 500;
-
 unsigned long long last_millis = 0;
 boolean buzzerState = false;
 
+int freq_buzz = 600;
+int interval_time_buzz = 1000;
+unsigned long long last_micros_buzz = 0;
+boolean buzzerStatePWM = false;
+
 void setup()
 {
+  interval_time_buzz = (float)(1 / (float)freq_buzz) * 1000000;
   pinMode(led_pin, OUTPUT);
   pinMode(buzzer_pin, OUTPUT);
   pinMode(dit_pin, INPUT);
@@ -40,14 +45,13 @@ void loop()
     }
   }
 
-/*if (buzzerState)
+  if (buzzerState)
   {
-    tone(buzzer_pin, 1000);
+    if (micros() - last_micros_buzz >= interval_time_buzz)
+    {
+      buzzerStatePWM = !buzzerStatePWM;
+      digitalWrite(buzzer_pin, buzzerStatePWM);
+      last_micros_buzz = micros();
+    }
   }
-  else
-  {
-    noTone(buzzer_pin);
-  }
-*/
-  
 }
