@@ -1,20 +1,29 @@
 #include <Arduino.h>
 
+/* defining the pin assignments for different components */
 int dit_pin = PIN_PA6;
 int dah_pin = PIN_PA5;
 int led_pin = PIN_PA2;
 int buzzer_pin = PIN_PA1;
 
-int interval_time = 500;
+/* These lines of code are initializing variables used in the Morse code generator program*/
+int interval_time = 250;
 int freq_buzz = 1000;
 int interval_time_buzz = 1000;
 unsigned long long last_millis = 0;
 boolean buzzerState = false;
 unsigned long long last_micros_buzz = 0;
 boolean buzzerStatePWM = false;
+byte stateloop = 0;
 
 void setup()
 {
+  /* calculating the interval time for the buzzer to create a specific frequency
+  sound. It is converting the frequency value `freq_buzz` into the corresponding time interval in
+  microseconds. The formula used is `(1 / freq_buzz) * 1000000`, where `1 / freq_buzz` calculates
+  the period of one cycle of the frequency, and then multiplying by `1000000` converts it to
+  microseconds. This interval time is then used to control the buzzer's PWM (Pulse Width Modulation)
+  to generate the desired frequency sound. */
   interval_time_buzz = (float)(1 / (float)freq_buzz) * 1000000;
   pinMode(led_pin, OUTPUT);
   pinMode(buzzer_pin, OUTPUT);
@@ -24,43 +33,69 @@ void setup()
 
 void loop()
 {
-  if (!digitalRead(dit_pin))
+  // Morse Code Keyer
+  // This code reads inputs from two switches ("dit" and "dah") representing Morse code elements.
+  // When a switch is pressed, it activates a buzzer for a specified duration to produce Morse code sounds.
+  switch (stateloop)
   {
-    if (millis() - last_millis >= interval_time / 3)
+  case 0: // checking states
+    // Check if either the "dit" or "dah" switch is pressed.
+    if (!digitalRead(dit_pin)) // If "dit" (short beep) switch is pressed
     {
-      buzzerState = !buzzerState;
-      last_millis = millis();
+      stateloop = 1; // Move to "dit" state
     }
+    if (!digitalRead(dah_pin)) // If "dah" (long beep) switch is pressed
+    {
+      stateloop = 2; // Move to "dah" state
+    }
+    last_millis = millis(); // Record the current time
+    break;
+  case 1:                                            // Dit state (produces a short beep)
+    buzzerState = true;                              // Turn on the buzzer
+    if (millis() - last_millis >= interval_time / 3) // If a third of interval time has passed
+    {
+      buzzerState = false;    // Turn off the buzzer
+      stateloop = 3;          // Move to the delay state (inter-element gap)
+      last_millis = millis(); // Record the current time
+    }
+    break;
+  case 2:                                        // Dah state (produces a long beep)
+    buzzerState = true;                          // Turn on the buzzer
+    if (millis() - last_millis >= interval_time) // If the full interval time has passed
+    {
+      buzzerState = false;    // Turn off the buzzer
+      stateloop = 3;          // Move to the delay state (inter-element gap)
+      last_millis = millis(); // Record the current time
+    }
+    break;
+  case 3:                                            // Delay state (pause between Morse elements)
+    buzzerState = false;                             // Ensure the buzzer is off
+    if (millis() - last_millis >= interval_time / 3) // If a third of interval time has passed
+    {
+      stateloop = 0; // Return to the waiting state
+    }
+    break;
+  default:         // Default state (failsafe)
+    stateloop = 0; // Reset to the waiting state
+    break;
   }
 
-  if (!digitalRead(dah_pin))
-  {
-    if (millis() - last_millis >= interval_time)
-    {
-      buzzerState = !buzzerState;
-      last_millis = millis();
-    }
-  }
-
+  // If buzzer is active, turn on LED and generate a PWM signal for buzzer
   if (buzzerState)
   {
+    digitalWrite(led_pin, HIGH); // LED on to indicate buzzer activity
 
-    digitalWrite(led_pin, HIGH);
-    if (micros() - last_micros_buzz >= interval_time_buzz)
+    // Generate PWM for buzzer by toggling `buzzer_pin` at intervals
+    if (micros() - last_micros_buzz >= interval_time_buzz) // Check if PWM interval elapsed
     {
-      buzzerStatePWM = !buzzerStatePWM;
-      digitalWrite(buzzer_pin, buzzerStatePWM);
-      last_micros_buzz = micros();
+      buzzerStatePWM = !buzzerStatePWM;         // Toggle PWM state
+      digitalWrite(buzzer_pin, buzzerStatePWM); // Update buzzer output
+      last_micros_buzz = micros();              // Reset PWM timer
     }
   }
   else
   {
-    digitalWrite(buzzer_pin, LOW);
-    digitalWrite(led_pin, LOW);
-  }
-
-  if (digitalRead(dit_pin) && digitalRead(dah_pin))
-  {
-    buzzerState = false;
+    digitalWrite(buzzer_pin, LOW); // Turn buzzer off
+    digitalWrite(led_pin, LOW);    // Turn LED off
   }
 }
