@@ -7,7 +7,7 @@ int led_pin = PIN_PA2;
 int buzzer_pin = PIN_PA1;
 
 /* These lines of code are initializing variables used in the Morse code generator program*/
-byte wpm = 10;
+byte wpm = 15;
 int interval_time = 1500 / wpm; // WPM to interval
 int freq_buzz = 1000;
 int interval_time_buzz = 1000;
@@ -49,6 +49,10 @@ void loop()
     {
       stateloop = 2; // Move to "dah" state
     }
+    if (!digitalRead(dah_pin) && !digitalRead(dit_pin))
+    {
+      stateloop = 4;
+    }
     last_millis = millis(); // Record the current time
     break;
   case 1:                                        // Dit state (produces a short beep)
@@ -74,6 +78,31 @@ void loop()
     if (millis() - last_millis >= interval_time) // If a third of interval time has passed
     {
       stateloop = 0; // Return to the waiting state
+    }
+    break;
+  case 4:               // dit dah dit dah dit dah
+    buzzerState = true; // Turn on the buzzer
+    if (millis() - last_millis >= interval_time)
+    {
+      buzzerState = false; // Turn off the buzzer
+      stateloop = 5;
+      last_millis = millis();
+    }
+    break;
+  case 5:                                        // dit dah dit dah dit dah pause
+    buzzerState = false;                         // Ensure the buzzer is off
+    if (millis() - last_millis >= interval_time) // If a third of interval time has passed
+    {
+      stateloop = 6; // Return to the waiting state
+    }
+    break;
+  case 6:               // dit dah dit dah dit dah
+    buzzerState = true; // Turn on the buzzer
+    if (millis() - last_millis >= interval_time * 3)
+    {
+      buzzerState = false; // Turn off the buzzer
+      stateloop = 3;
+      last_millis = millis();
     }
     break;
   default:         // Default state (failsafe)
