@@ -7,7 +7,8 @@ int led_pin = PIN_PA2;
 int buzzer_pin = PIN_PA1;
 
 /* These lines of code are initializing variables used in the Morse code generator program*/
-int interval_time = 250;
+byte wpm = 10;
+int interval_time = 1500 / wpm; // WPM to interval
 int freq_buzz = 1000;
 int interval_time_buzz = 1000;
 unsigned long long last_millis = 0;
@@ -50,27 +51,27 @@ void loop()
     }
     last_millis = millis(); // Record the current time
     break;
-  case 1:                                            // Dit state (produces a short beep)
-    buzzerState = true;                              // Turn on the buzzer
-    if (millis() - last_millis >= interval_time / 3) // If a third of interval time has passed
-    {
-      buzzerState = false;    // Turn off the buzzer
-      stateloop = 3;          // Move to the delay state (inter-element gap)
-      last_millis = millis(); // Record the current time
-    }
-    break;
-  case 2:                                        // Dah state (produces a long beep)
+  case 1:                                        // Dit state (produces a short beep)
     buzzerState = true;                          // Turn on the buzzer
-    if (millis() - last_millis >= interval_time) // If the full interval time has passed
+    if (millis() - last_millis >= interval_time) // If a third of interval time has passed
     {
       buzzerState = false;    // Turn off the buzzer
       stateloop = 3;          // Move to the delay state (inter-element gap)
       last_millis = millis(); // Record the current time
     }
     break;
-  case 3:                                            // Delay state (pause between Morse elements)
-    buzzerState = false;                             // Ensure the buzzer is off
-    if (millis() - last_millis >= interval_time / 3) // If a third of interval time has passed
+  case 2:                                            // Dah state (produces a long beep)
+    buzzerState = true;                              // Turn on the buzzer
+    if (millis() - last_millis >= interval_time * 3) // If the full interval time has passed
+    {
+      buzzerState = false;    // Turn off the buzzer
+      stateloop = 3;          // Move to the delay state (inter-element gap)
+      last_millis = millis(); // Record the current time
+    }
+    break;
+  case 3:                                        // Delay state (pause between Morse elements)
+    buzzerState = false;                         // Ensure the buzzer is off
+    if (millis() - last_millis >= interval_time) // If a third of interval time has passed
     {
       stateloop = 0; // Return to the waiting state
     }
