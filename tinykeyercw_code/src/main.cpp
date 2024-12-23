@@ -1,10 +1,13 @@
 #include <Arduino.h>
+#include <Wire.h>
+#include <Tiny4kOLED.h>
 
 /* defining the pin assignments for different components */
 int dit_pin = PIN_PA6;
 int dah_pin = PIN_PA5;
 int led_pin = PIN_PA2;
 int buzzer_pin = PIN_PA1;
+int pot_pin = PIN_PA7;
 
 /* These lines of code are initializing variables used in the Morse code generator program*/
 byte wpm = 15;
@@ -16,6 +19,12 @@ boolean buzzerState = false;
 unsigned long long last_micros_buzz = 0;
 boolean buzzerStatePWM = false;
 byte stateloop = 0;
+
+uint8_t width = 128;
+uint8_t height = 64;
+int interval_time_pot = 200;
+unsigned long long last_millis_pot = 0;
+int lastPot = 0;
 
 void setup()
 {
@@ -30,11 +39,36 @@ void setup()
   pinMode(buzzer_pin, OUTPUT);
   pinMode(dit_pin, INPUT);
   pinMode(dah_pin, INPUT);
+  pinMode(pot_pin, INPUT);
+
+  oled.begin(width, height, sizeof(tiny4koled_init_128x64br), tiny4koled_init_128x64br);
+  oled.setFontX2Smooth(FONT8X16);
+  oled.clear();
+  oled.on();
 }
 
 void loop()
 {
   // Morse Code Keyer
+  if (millis() - last_millis_pot >= interval_time_pot) // If a third of interval time has passed
+  {
+    int a = analogRead(pot_pin);
+
+    if (abs(lastPot - a) >= 50)
+    {
+      wpm = map(analogRead(pot_pin), 0, 1023, 4, 42);
+
+      interval_time = 1500 / wpm; // WPM to interval
+
+      oled.setCursor(0, 0);
+      oled.println("Speed:");
+      oled.printf("%d WPM ", wpm);
+      lastPot = a;
+    }
+
+    last_millis_pot = millis(); // Record the current time
+  }
+
   // This code reads inputs from two switches ("dit" and "dah") representing Morse code elements.
   // When a switch is pressed, it activates a buzzer for a specified duration to produce Morse code sounds.
   switch (stateloop)
